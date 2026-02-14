@@ -19,18 +19,24 @@
 
 ## 技術構成
 
-- 単一HTMLファイル（`index.html`）にCSS・JSを全て埋め込み
+- `index.html`（HTML + CSS + JavaScript）
 - Canvas 2D APIで描画（外部ライブラリなし）
 - 内部解像度 240x400、画面サイズに自動フィット
-- スプライトは文字列配列によるドット絵定義（`drawSprite` 関数）
+- キャラクター画像は外部PNGファイル（`images/` フォルダ）
 - 効果音は Web Audio API によるスクエア波/ノコギリ波生成
+
+## 画像アセット
+
+- `images/player_1.png` ~ `player_4.png`：プレイヤーキャラクター（シュナウザー + タケコプター）の4フレームアニメーション
+- 推奨サイズ：64x64px
+- フォーマット：PNG（透過背景）
 
 ## 現在の実装状況
 
 ### 済
 
 - ゲーム画面: タイトル / プレイ中 / ステージクリア / ゲームオーバー
-- 自機: シュナウザーのドット絵 + タケコプターアニメーション（4フレーム）
+- 自機: 外部画像ファイルによるキャラクター描画 + タケコプターアニメーション（4フレーム）
 - 操作: タッチドラッグによる相対移動、タップでメニュー操作
 - 弾幕パターン4種: rain（上から雨）、aimed（自機狙い）、spiral（螺旋）、circle（放射バースト）
 - 5ステージ構成（パターン組合せ・難易度がステージごとに上昇）
@@ -59,17 +65,16 @@
 1. **Configuration** — 定数定義（画面サイズ、色、ヒットボックス）
 2. **Canvas setup** — リサイズ処理
 3. **Sound** — Web Audio API による効果音生成
-4. **Pixel art helper** — `drawSprite()` 汎用ドット絵描画
-5. **Schnauzer sprite** — 自機のドット絵データとタケコプターフレーム
-6. **Game state** — ステート管理、ステージ定義配列
-7. **Player** — 自機の座標・サイズ
-8. **Bullets** — オブジェクトプール方式の弾管理
-9. **Bullet patterns** — 4種のパターン生成ロジック
-10. **Collision detection** — ヒット・グレイズ判定
-11. **Particles** — エフェクト用パーティクル
-12. **Stars background** — 背景の星
-13. **Player hit / game events** — 被弾・ステージ開始処理
-14. **Touch input** — タッチ操作（Android Chrome最適化済み）
-15. **Drawing helpers** — 自機・HUD描画
-16. **Screen draws** — 各画面の描画（タイトル・クリア・ゲームオーバー）
-17. **Main loop** — update / draw / requestAnimationFrame
+4. **Image assets** — プレイヤー画像の読み込み（4フレーム）
+5. **Game state** — ステート管理、ステージ定義配列
+6. **Player** — 自機の座標・サイズ
+7. **Bullets** — オブジェクトプール方式の弾管理
+8. **Bullet patterns** — 4種のパターン生成ロジック
+9. **Collision detection** — ヒット・グレイズ判定
+10. **Particles** — エフェクト用パーティクル
+11. **Stars background** — 背景の星
+12. **Player hit / game events** — 被弾・ステージ開始処理
+13. **Touch input** — タッチ操作（Android Chrome最適化済み）
+14. **Drawing helpers** — 自機・HUD描画
+15. **Screen draws** — 各画面の描画（タイトル・クリア・ゲームオーバー）
+16. **Main loop** — update / draw / requestAnimationFrame
