@@ -17,11 +17,11 @@ def process_spritesheet(input_path, output_path):
 
     pixels = img.load()
 
-    # Define color ranges for detection
-    # Magenta: RGB(255, 0, 255) with tolerance
-    # Green: RGB(0, 255, 0) with tolerance
-    magenta_tolerance = 30
-    green_tolerance = 30
+    # Define color ranges for detection based on actual pixel analysis
+    # Actual magenta: RGB(226, 24, 230) - expanded range to catch all variations
+    # Actual green: RGB(116, 187, 111) - expanded range
+    # Magenta: high R (>180), low G (<80), high B (>180)
+    # Green: low R (<150), high G (>170), low B (<150)
 
     transparent_count = 0
 
@@ -32,18 +32,20 @@ def process_spritesheet(input_path, output_path):
         for x in range(width):
             r, g, b, a = pixels[x, y]
 
-            # Check if pixel is magenta (grid line)
+            # Check if pixel is magenta-like (grid line)
+            # High red and blue, low green
             is_magenta = (
-                abs(r - 255) < magenta_tolerance and
-                abs(g - 0) < magenta_tolerance and
-                abs(b - 255) < magenta_tolerance
+                r > 180 and
+                g < 80 and
+                b > 180
             )
 
-            # Check if pixel is green (background)
+            # Check if pixel is green-like (background)
+            # Low red, high green, low blue
             is_green = (
-                abs(r - 0) < green_tolerance and
-                abs(g - 255) < green_tolerance and
-                abs(b - 0) < green_tolerance
+                r < 150 and
+                g > 170 and
+                b < 150
             )
 
             # Make magenta and green pixels transparent

@@ -524,14 +524,16 @@ function drawPlayer() {
   // Invincibility blink
   if (invincible > 0 && Math.floor(invincible / 4) % 2 === 0) return;
 
-  // Select animation frame from spritesheet (cycling every 4 game frames)
-  // Using top row (frames 0-3) for main animation
-  const frameIdx = Math.floor(frameCount / 4) % 4;
+  // Select animation frame from spritesheet (cycling every 2 game frames)
+  // Using all 128 frames (16 cols x 8 rows)
+  const frameIdx = Math.floor(frameCount / 2) % TOTAL_FRAMES;
 
   if (spritesheetLoaded && playerSpritesheet) {
-    // Calculate source position in spritesheet (top row only)
-    const srcX = frameIdx * frameWidth;
-    const srcY = 0;
+    // Calculate source position in spritesheet
+    const col = frameIdx % SPRITESHEET_COLS;
+    const row = Math.floor(frameIdx / SPRITESHEET_COLS);
+    const srcX = col * frameWidth;
+    const srcY = row * frameHeight;
 
     // Draw the frame centered on player position
     const px = player.x - player.spriteW / 2;
@@ -625,12 +627,14 @@ function drawTitleScreen() {
   const bigScale = 3;
   const bigW = player.spriteW * bigScale;
   const bigH = player.spriteH * bigScale;
-  const frameIdx = Math.floor(frameCount / 4) % 4;
+  const frameIdx = Math.floor(frameCount / 2) % TOTAL_FRAMES;
 
   if (spritesheetLoaded && playerSpritesheet) {
-    // Calculate source position in spritesheet (top row)
-    const srcX = frameIdx * frameWidth;
-    const srcY = 0;
+    // Calculate source position in spritesheet
+    const col = frameIdx % SPRITESHEET_COLS;
+    const row = Math.floor(frameIdx / SPRITESHEET_COLS);
+    const srcX = col * frameWidth;
+    const srcY = row * frameHeight;
 
     ctx.drawImage(
       playerSpritesheet,
