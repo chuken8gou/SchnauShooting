@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>SchnauShooting</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+canvas {
+  display: block;
+  margin: 0 auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+'use strict';
+
+// ============================================================
+// Configuration
+// ============================================================
+const GAME_W = 240;  // Internal resolution width
+const GAME_H = 400;  // Internal resolution height
+const BG_COLOR = '#000';
+const FG_COLOR = '#fff';
+const ACCENT_COLOR = '#4fc3f7'; // Light blue for taketompter
+const PX = 1; // 1 game-pixel
+
+// ============================================================
+// Canvas setup
+// ============================================================
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  const windowW = window.innerWidth;
+  const windowH = window.innerHeight;
+  const scaleX = windowW / GAME_W;
+  const scaleY = windowH / GAME_H;
+  const scale = Math.min(scaleX, scaleY);
+  canvas.width = GAME_W;
+  canvas.height = GAME_H;
+  canvas.style.width = Math.floor(GAME_W * scale) + 'px';
+  canvas.style.height = Math.floor(GAME_H * scale) + 'px';
+  canvas.style.marginTop = Math.floor((windowH - GAME_H * scale) / 2) + 'px';
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ============================================================
+// Pixel art helper — draw a sprite from a string map
+// ============================================================
+// Each character maps to a color (or transparent)
+function drawSprite(ctx, x, y, spriteData, palette, pixelSize) {
+  const ps = pixelSize || 2;
+  for (let row = 0; row < spriteData.length; row++) {
+    const line = spriteData[row];
+    for (let col = 0; col < line.length; col++) {
+      const ch = line[col];
+      if (ch === '.' || ch === ' ') continue; // transparent
+      const color = palette[ch] || FG_COLOR;
+      ctx.fillStyle = color;
+      ctx.fillRect(
+        Math.floor(x + col * ps),
+        Math.floor(y + row * ps),
+        ps, ps
+      );
+    }
+  }
+}
+
+// ============================================================
+// Schnauzer sprite (16x20 pixel art)
+// w = white, g = gray(dark), e = eye(black with white dot),
+// n = nose(black), . = transparent
+// ============================================================
+const schnauzerBody = [
+  // Row 0-19: A miniature schnauzer facing up (top-down view style)
+  '....wwwwww....',  // top of head
+  '...wwwwwwww...',  // head
+  '..wwwwwwwwww..',  // head wider
+  '..wwewwwweww..',  // eyes
+  '..wwwwwwwwww..',  // face
+  '.gwwwwwwwwwwg.',  // eyebrows/beard start
+  '.gwwwwnnwwwwg.',  // nose
+  '.ggwwwwwwwwgg.',  // beard
+  '.gggwwwwwwggg.',  // beard longer
+  '..gggggggggg..',  // beard bottom
+  '....wwwwww....',  // neck
+  '...wwwwwwww...',  // body
+  '..wwwwwwwwww..',  // body
+  '..wwwwwwwwww..',  // body
+  '..wwwwwwwwww..',  // body
+  '...ww....ww...',  // legs
+  '...ww....ww...',  // legs
+  '..www....www..',  // paws
+];
+
+const schnauzerPalette = {
+  'w': '#ffffff',
+  'g': '#bbbbbb',
+  'e': '#000000',
+  'n': '#333333',
+};
+
+// ============================================================
+// Taketompter (bamboo copter) sprite — animated 2 frames
+// ============================================================
+const copter1 = [
+  'BBBBB..ccc..BBBBB',
+  '......ccc........',
+  '.......c.........',
+];
+const copter2 = [
+  '........c........',
+  '......ccc........',
+  'BBBBB..ccc..BBBBB',
+];
+const copter3 = [
+  '.......c.........',
+  '......ccc........',
+  '.BBBB..ccc..BBBB.',
+];
+const copter4 = [
+  '.......c.........',
+  '......ccc........',
+  '..BBB..ccc..BBB..',
+];
+
+const copterFrames = [copter1, copter2, copter3, copter4];
+
+const copterPalette = {
+  'B': ACCENT_COLOR,
+  'c': '#8d6e63', // brown stick
+};
+
+// ============================================================
+// Player state
+// ============================================================
+const player = {
+  x: GAME_W / 2,
+  y: GAME_H * 0.75,
+  speed: 3,
+  spriteW: 14 * 2, // sprite width in game pixels (14 cols * 2px)
+  spriteH: 18 * 2, // sprite height in game pixels (18 rows * 2px)
+};
+
+// ============================================================
+// Stars background (scrolling)
+// ============================================================
+const stars = [];
+for (let i = 0; i < 40; i++) {
+  stars.push({
+    x: Math.random() * GAME_W,
+    y: Math.random() * GAME_H,
+    speed: 0.3 + Math.random() * 0.7,
+    brightness: Math.floor(80 + Math.random() * 100),
+  });
+}
+
+function updateStars() {
+  for (const s of stars) {
+    s.y += s.speed;
+    if (s.y > GAME_H) {
+      s.y = 0;
+      s.x = Math.random() * GAME_W;
+    }
+  }
+}
+
+function drawStars() {
+  for (const s of stars) {
+    const v = s.brightness.toString(16).padStart(2, '0');
+    ctx.fillStyle = '#' + v + v + v;
+    ctx.fillRect(Math.floor(s.x), Math.floor(s.y), 1, 1);
+  }
+}
+
+// ============================================================
+// Touch / Mouse input
+// ============================================================
+let touchActive = false;
+let touchX = 0;
+let touchY = 0;
+let touchStartX = 0;
+let touchStartY = 0;
+let playerStartX = 0;
+let playerStartY = 0;
+
+function getCanvasPos(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (clientX - rect.left) / rect.width * GAME_W,
+    y: (clientY - rect.top) / rect.height * GAME_H,
+  };
+}
+
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  const t = e.touches[0];
+  const pos = getCanvasPos(t.clientX, t.clientY);
+  touchActive = true;
+  touchStartX = pos.x;
+  touchStartY = pos.y;
+  playerStartX = player.x;
+  playerStartY = player.y;
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (!touchActive) return;
+  const t = e.touches[0];
+  const pos = getCanvasPos(t.clientX, t.clientY);
+  // Relative movement from touch start position
+  player.x = playerStartX + (pos.x - touchStartX);
+  player.y = playerStartY + (pos.y - touchStartY);
+  clampPlayer();
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  touchActive = false;
+}, { passive: false });
+
+// Mouse support for desktop testing
+let mouseDown = false;
+let mouseStartX = 0;
+let mouseStartY = 0;
+let playerMouseStartX = 0;
+let playerMouseStartY = 0;
+
+canvas.addEventListener('mousedown', (e) => {
+  const pos = getCanvasPos(e.clientX, e.clientY);
+  mouseDown = true;
+  mouseStartX = pos.x;
+  mouseStartY = pos.y;
+  playerMouseStartX = player.x;
+  playerMouseStartY = player.y;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!mouseDown) return;
+  const pos = getCanvasPos(e.clientX, e.clientY);
+  player.x = playerMouseStartX + (pos.x - mouseStartX);
+  player.y = playerMouseStartY + (pos.y - mouseStartY);
+  clampPlayer();
+});
+
+canvas.addEventListener('mouseup', () => { mouseDown = false; });
+canvas.addEventListener('mouseleave', () => { mouseDown = false; });
+
+function clampPlayer() {
+  const hw = player.spriteW / 2;
+  const hh = player.spriteH / 2;
+  if (player.x < hw) player.x = hw;
+  if (player.x > GAME_W - hw) player.x = GAME_W - hw;
+  if (player.y < hh) player.y = hh;
+  if (player.y > GAME_H - hh) player.y = GAME_H - hh;
+}
+
+// ============================================================
+// Animation frame counter
+// ============================================================
+let frameCount = 0;
+
+// ============================================================
+// Draw the player (schnauzer + taketompter)
+// ============================================================
+function drawPlayer() {
+  const px = player.x - player.spriteW / 2;
+  const py = player.y - player.spriteH / 2;
+
+  // Draw taketompter above head
+  const copterIdx = Math.floor(frameCount / 4) % copterFrames.length;
+  const copterSprite = copterFrames[copterIdx];
+  // Center copter above the schnauzer head
+  const copterW = 18 * 2; // copter sprite width
+  const copterX = player.x - copterW / 2;
+  const copterY = py - 6 * 2; // above head
+  drawSprite(ctx, copterX, copterY, copterSprite, copterPalette, 2);
+
+  // Draw schnauzer body
+  drawSprite(ctx, px, py, schnauzerBody, schnauzerPalette, 2);
+}
+
+// ============================================================
+// HUD
+// ============================================================
+function drawHUD() {
+  ctx.fillStyle = FG_COLOR;
+  ctx.font = '8px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('SCHNAU SHOOTING', 8, 12);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#888';
+  ctx.fillText('- DEMO -', GAME_W / 2, GAME_H - 8);
+
+  if (!touchActive && !mouseDown) {
+    // Show instruction
+    const blink = Math.floor(frameCount / 30) % 2 === 0;
+    if (blink) {
+      ctx.fillStyle = FG_COLOR;
+      ctx.textAlign = 'center';
+      ctx.fillText('TOUCH TO MOVE', GAME_W / 2, GAME_H * 0.55);
+    }
+  }
+}
+
+// ============================================================
+// Main game loop
+// ============================================================
+function update() {
+  updateStars();
+  frameCount++;
+}
+
+function draw() {
+  // Clear
+  ctx.fillStyle = BG_COLOR;
+  ctx.fillRect(0, 0, GAME_W, GAME_H);
+
+  // Stars
+  drawStars();
+
+  // Player
+  drawPlayer();
+
+  // HUD
+  drawHUD();
+}
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+// Start
+gameLoop();
+</script>
+</body>
+</html>
