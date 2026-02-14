@@ -109,26 +109,30 @@ function sfxStart() { playTone(440, 0.1, 'square', 0.08); playTone(880, 0.15, 's
 // ============================================================
 // Image assets
 // ============================================================
-const playerImages = [];
-let imagesLoaded = 0;
-const TOTAL_IMAGES = 4;
+// Spritesheet configuration (4x4 grid = 16 frames)
+const SPRITESHEET_COLS = 4;
+const SPRITESHEET_ROWS = 4;
+const TOTAL_FRAMES = SPRITESHEET_COLS * SPRITESHEET_ROWS;
 
-// Load player animation frames
-for (let i = 1; i <= TOTAL_IMAGES; i++) {
-  const img = new Image();
-  img.src = `images/player_${i}.png`;
-  img.onload = () => {
-    imagesLoaded++;
-    if (imagesLoaded === TOTAL_IMAGES) {
-      console.log('All player images loaded');
-    }
-  };
-  img.onerror = () => {
-    console.warn(`Failed to load images/player_${i}.png - using placeholder`);
-    imagesLoaded++;
-  };
-  playerImages.push(img);
-}
+let playerSpritesheet = null;
+let spritesheetLoaded = false;
+let frameWidth = 0;
+let frameHeight = 0;
+
+// Load player spritesheet
+const spritesheetImg = new Image();
+spritesheetImg.src = 'images/player_spritesheet.png';
+spritesheetImg.onload = () => {
+  playerSpritesheet = spritesheetImg;
+  // Calculate individual frame size
+  frameWidth = spritesheetImg.naturalWidth / SPRITESHEET_COLS;
+  frameHeight = spritesheetImg.naturalHeight / SPRITESHEET_ROWS;
+  spritesheetLoaded = true;
+  console.log(`Spritesheet loaded: ${spritesheetImg.naturalWidth}x${spritesheetImg.naturalHeight}, frame size: ${frameWidth}x${frameHeight}`);
+};
+spritesheetImg.onerror = () => {
+  console.warn('Failed to load images/player_spritesheet.png - using placeholder');
+};
 
 // ============================================================
 // Game state
@@ -520,15 +524,23 @@ function drawPlayer() {
   // Invincibility blink
   if (invincible > 0 && Math.floor(invincible / 4) % 2 === 0) return;
 
-  // Select animation frame (4 frames, cycling every 4 game frames)
-  const frameIdx = Math.floor(frameCount / 4) % playerImages.length;
-  const img = playerImages[frameIdx];
+  // Select animation frame from spritesheet (cycling every 4 game frames)
+  // Using top row (frames 0-3) for main animation
+  const frameIdx = Math.floor(frameCount / 4) % 4;
 
-  if (img && img.complete && img.naturalWidth > 0) {
-    // Draw the image centered on player position
+  if (spritesheetLoaded && playerSpritesheet) {
+    // Calculate source position in spritesheet (top row only)
+    const srcX = frameIdx * frameWidth;
+    const srcY = 0;
+
+    // Draw the frame centered on player position
     const px = player.x - player.spriteW / 2;
     const py = player.y - player.spriteH / 2;
-    ctx.drawImage(img, Math.floor(px), Math.floor(py), player.spriteW, player.spriteH);
+    ctx.drawImage(
+      playerSpritesheet,
+      srcX, srcY, frameWidth, frameHeight,  // source rect
+      Math.floor(px), Math.floor(py), player.spriteW, player.spriteH  // dest rect
+    );
   } else {
     // Fallback: draw a simple placeholder rectangle if image not loaded
     ctx.fillStyle = FG_COLOR;
@@ -613,15 +625,17 @@ function drawTitleScreen() {
   const bigScale = 3;
   const bigW = player.spriteW * bigScale;
   const bigH = player.spriteH * bigScale;
-  const frameIdx = Math.floor(frameCount / 4) % playerImages.length;
-  const img = playerImages[frameIdx];
+  const frameIdx = Math.floor(frameCount / 4) % 4;
 
-  if (img && img.complete && img.naturalWidth > 0) {
-    ctx.drawImage(img,
-      Math.floor(GAME_W / 2 - bigW / 2),
-      120,
-      bigW,
-      bigH
+  if (spritesheetLoaded && playerSpritesheet) {
+    // Calculate source position in spritesheet (top row)
+    const srcX = frameIdx * frameWidth;
+    const srcY = 0;
+
+    ctx.drawImage(
+      playerSpritesheet,
+      srcX, srcY, frameWidth, frameHeight,  // source rect
+      Math.floor(GAME_W / 2 - bigW / 2), 120, bigW, bigH  // dest rect
     );
   } else {
     // Fallback placeholder
