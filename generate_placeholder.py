@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Generate placeholder player images (64x64 PNG) for SchnauShooting game
-Simple pixel-art style miniature schnauzer with propeller hat
+Generate cute player images (64x64 PNG) for SchnauShooting game
+Top-down view: 2-head-tall deformed miniature schnauzer
+Superman pose with Takecopter on head
 """
 
 from PIL import Image, ImageDraw
@@ -16,61 +17,138 @@ SIZE = 64
 # Colors
 BG_TRANSPARENT = (0, 0, 0, 0)
 WHITE = (255, 255, 255, 255)
+GRAY = (180, 180, 180, 255)
+DARK_GRAY = (100, 100, 100, 255)
 CYAN = (79, 195, 247, 255)
-GRAY = (128, 128, 128, 255)
+BLUE = (33, 150, 243, 255)
+BLACK = (0, 0, 0, 255)
 
-def draw_schnauzer_base(draw):
-    """Draw basic schnauzer body (white)"""
-    # Head (square-ish)
-    draw.rectangle([20, 25, 44, 45], fill=WHITE)
+def draw_schnauzer_top_view(draw):
+    """
+    Draw miniature schnauzer from top-down view
+    2-head proportion: head is about same size as body
+    Superman flying pose: arms stretched forward
+    """
 
-    # Snout/beard (signature schnauzer feature)
-    draw.rectangle([18, 35, 46, 48], fill=WHITE)
+    # === BODY (lower, smaller oval) ===
+    # Body positioned lower, slightly smaller than head
+    body_x1, body_y1 = 24, 36
+    body_x2, body_y2 = 40, 54
+    draw.ellipse([body_x1, body_y1, body_x2, body_y2], fill=WHITE, outline=DARK_GRAY)
 
-    # Ears
-    draw.rectangle([18, 25, 22, 35], fill=WHITE)
-    draw.rectangle([42, 25, 46, 35], fill=WHITE)
+    # === ARMS (stretched forward like Superman) ===
+    # Left arm (stretched upward on screen = forward in 3D)
+    draw.ellipse([20, 28, 26, 38], fill=WHITE, outline=DARK_GRAY)
+    # Left paw (small circle)
+    draw.ellipse([19, 25, 24, 30], fill=GRAY)
 
-    # Body
-    draw.ellipse([22, 45, 42, 58], fill=WHITE)
+    # Right arm (stretched upward on screen = forward in 3D)
+    draw.ellipse([38, 28, 44, 38], fill=WHITE, outline=DARK_GRAY)
+    # Right paw (small circle)
+    draw.ellipse([40, 25, 45, 30], fill=GRAY)
 
-    # Eyes (black dots)
-    draw.rectangle([26, 32, 28, 34], fill=(0, 0, 0, 255))
-    draw.rectangle([36, 32, 38, 34], fill=(0, 0, 0, 255))
+    # === LEGS (visible at bottom, slightly bent) ===
+    # Back left leg
+    draw.ellipse([24, 50, 29, 58], fill=WHITE, outline=DARK_GRAY)
+    # Back right leg
+    draw.ellipse([35, 50, 40, 58], fill=WHITE, outline=DARK_GRAY)
 
-    # Nose
-    draw.rectangle([31, 40, 33, 42], fill=(0, 0, 0, 255))
+    # === HEAD (upper, larger) ===
+    # Main head (round, fluffy schnauzer face)
+    head_x1, head_y1 = 22, 20
+    head_x2, head_y2 = 42, 40
+    draw.ellipse([head_x1, head_y1, head_x2, head_y2], fill=WHITE, outline=DARK_GRAY)
 
-def draw_propeller(draw, frame):
-    """Draw propeller (Takecopter) with rotation animation"""
-    # Base (gray circle on top of head)
-    draw.ellipse([28, 18, 36, 26], fill=GRAY)
+    # Schnauzer's signature beard/muzzle (rectangle protruding down)
+    muzzle_x1, muzzle_y1 = 26, 36
+    muzzle_x2, muzzle_y2 = 38, 44
+    draw.rectangle([muzzle_x1, muzzle_y1, muzzle_x2, muzzle_y2], fill=GRAY, outline=DARK_GRAY)
 
-    # Propeller blades (rotate based on frame)
-    angles = [0, 45, 90, 135]  # Different angle per frame
-    angle = angles[frame]
+    # Nose (small black triangle/circle at tip of muzzle)
+    draw.ellipse([30, 42, 34, 46], fill=BLACK)
 
-    if angle == 0 or angle == 90:
-        # Horizontal blade
-        draw.rectangle([20, 20, 44, 22], fill=CYAN)
+    # Ears (small rounded rectangles on sides)
+    # Left ear
+    draw.ellipse([20, 24, 24, 32], fill=GRAY, outline=DARK_GRAY)
+    # Right ear
+    draw.ellipse([40, 24, 44, 32], fill=GRAY, outline=DARK_GRAY)
 
-    if angle == 45 or angle == 135:
-        # Diagonal blade (simplified as horizontal for pixel art)
-        draw.rectangle([22, 19, 42, 21], fill=CYAN)
+    # Eyes (small black dots)
+    # Left eye
+    draw.ellipse([27, 28, 30, 31], fill=BLACK)
+    # Right eye
+    draw.ellipse([34, 28, 37, 31], fill=BLACK)
+
+def draw_takecopter(draw, frame):
+    """
+    Draw Takecopter (Doraemon's bamboo copter) on top of head
+    4-frame rotation animation
+    """
+    # Propeller center position (top of head)
+    cx, cy = 32, 16
+
+    # Base/mount (small gray circle)
+    draw.ellipse([cx-3, cy-3, cx+3, cy+3], fill=DARK_GRAY, outline=BLACK)
+
+    # Propeller blades - rotate based on frame
+    # Frame 0: horizontal —
+    # Frame 1: diagonal /
+    # Frame 2: vertical |
+    # Frame 3: diagonal \
+
+    blade_length = 14
+    blade_width = 3
+
+    if frame == 0:  # Horizontal —
+        draw.rectangle([cx-blade_length, cy-blade_width//2,
+                       cx+blade_length, cy+blade_width//2+blade_width],
+                      fill=CYAN, outline=BLUE)
+        # Highlight on blades
+        draw.rectangle([cx-blade_length, cy-blade_width//2,
+                       cx-blade_length+4, cy+blade_width//2+blade_width],
+                      fill=BLUE)
+        draw.rectangle([cx+blade_length-4, cy-blade_width//2,
+                       cx+blade_length, cy+blade_width//2+blade_width],
+                      fill=BLUE)
+
+    elif frame == 1:  # Diagonal / (thin line)
+        # Draw as thin rotated rectangle (approximate with ellipse)
+        draw.line([cx-10, cy+8, cx+10, cy-8], fill=CYAN, width=4)
+        draw.line([cx-10+1, cy+8, cx+10+1, cy-8], fill=BLUE, width=2)
+
+    elif frame == 2:  # Vertical |
+        draw.rectangle([cx-blade_width//2, cy-blade_length,
+                       cx+blade_width//2+blade_width, cy+blade_length],
+                      fill=CYAN, outline=BLUE)
+        # Highlight
+        draw.rectangle([cx-blade_width//2, cy-blade_length,
+                       cx+blade_width//2+blade_width, cy-blade_length+4],
+                      fill=BLUE)
+        draw.rectangle([cx-blade_width//2, cy+blade_length-4,
+                       cx+blade_width//2+blade_width, cy+blade_length],
+                      fill=BLUE)
+
+    elif frame == 3:  # Diagonal \ (thin line)
+        draw.line([cx-10, cy-8, cx+10, cy+8], fill=CYAN, width=4)
+        draw.line([cx-10+1, cy-8, cx+10+1, cy+8], fill=BLUE, width=2)
 
 # Generate 4 frames
 for i in range(4):
     img = Image.new('RGBA', (SIZE, SIZE), BG_TRANSPARENT)
     draw = ImageDraw.Draw(img)
 
-    # Draw character
-    draw_schnauzer_base(draw)
-    draw_propeller(draw, i)
+    # Draw Takecopter first (background layer)
+    draw_takecopter(draw, i)
+
+    # Draw schnauzer on top
+    draw_schnauzer_top_view(draw)
 
     # Save
     filename = f'images/player_{i+1}.png'
     img.save(filename)
-    print(f'Generated {filename}')
+    print(f'✅ Generated {filename}')
 
-print('\n✅ All 4 frames generated successfully!')
-print('Images are in ./images/ folder')
+print('\n🎉 All 4 frames generated successfully!')
+print('📁 Images saved in ./images/ folder')
+print('🐕 Top-down view, 2-head deformed, Superman pose')
+print('🚁 Takecopter rotating animation')
