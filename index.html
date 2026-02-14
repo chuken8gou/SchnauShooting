@@ -464,11 +464,13 @@ function startStage(idx) {
 }
 
 // ============================================================
-// Touch / Mouse input
+// Touch input (Android Chrome optimized)
 // ============================================================
 let touchActive = false;
-let touchStartX = 0, touchStartY = 0;
+let touchStartX = 0, touchStartY = 0;   // canvas coords at touch start
+let rawStartX = 0, rawStartY = 0;       // screen px at touch start (for tap detection)
 let playerStartX = 0, playerStartY = 0;
+const TAP_THRESHOLD = 15; // px on screen — movement within this counts as a tap
 
 function getCanvasPos(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
@@ -478,9 +480,6 @@ function getCanvasPos(clientX, clientY) {
   };
 }
 
-// Tap detection for menus
-let tapDetected = false;
-
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
   initAudio();
@@ -489,15 +488,15 @@ canvas.addEventListener('touchstart', (e) => {
   touchActive = true;
   touchStartX = pos.x;
   touchStartY = pos.y;
+  rawStartX = t.clientX;
+  rawStartY = t.clientY;
   playerStartX = player.x;
   playerStartY = player.y;
-  tapDetected = true;
 }, { passive: false });
 
 canvas.addEventListener('touchmove', (e) => {
   e.preventDefault();
   if (!touchActive) return;
-  tapDetected = false;
   const t = e.touches[0];
   const pos = getCanvasPos(t.clientX, t.clientY);
   if (gameState === STATE.PLAYING) {
@@ -509,44 +508,16 @@ canvas.addEventListener('touchmove', (e) => {
 
 canvas.addEventListener('touchend', (e) => {
   e.preventDefault();
+  if (!touchActive) return;
   touchActive = false;
-  if (tapDetected) handleTap();
-  tapDetected = false;
-}, { passive: false });
-
-// Mouse
-let mouseDown = false;
-let mouseStartX = 0, mouseStartY = 0;
-let playerMouseStartX = 0, playerMouseStartY = 0;
-
-canvas.addEventListener('mousedown', (e) => {
-  initAudio();
-  const pos = getCanvasPos(e.clientX, e.clientY);
-  mouseDown = true;
-  mouseStartX = pos.x;
-  mouseStartY = pos.y;
-  playerMouseStartX = player.x;
-  playerMouseStartY = player.y;
-  tapDetected = true;
-});
-
-canvas.addEventListener('mousemove', (e) => {
-  if (!mouseDown) return;
-  tapDetected = false;
-  const pos = getCanvasPos(e.clientX, e.clientY);
-  if (gameState === STATE.PLAYING) {
-    player.x = playerMouseStartX + (pos.x - mouseStartX);
-    player.y = playerMouseStartY + (pos.y - mouseStartY);
-    clampPlayer();
+  // Tap detection: check how far finger moved from start in screen pixels
+  const ct = e.changedTouches[0];
+  const dx = ct.clientX - rawStartX;
+  const dy = ct.clientY - rawStartY;
+  if (dx * dx + dy * dy < TAP_THRESHOLD * TAP_THRESHOLD) {
+    handleTap();
   }
-});
-
-canvas.addEventListener('mouseup', () => {
-  mouseDown = false;
-  if (tapDetected) handleTap();
-  tapDetected = false;
-});
-canvas.addEventListener('mouseleave', () => { mouseDown = false; });
+}, { passive: false });
 
 function handleTap() {
   if (gameState === STATE.TITLE) {
