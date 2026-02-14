@@ -107,54 +107,28 @@ function sfxGameOver() {
 function sfxStart() { playTone(440, 0.1, 'square', 0.08); playTone(880, 0.15, 'square', 0.06); }
 
 // ============================================================
-// Pixel art helper
+// Image assets
 // ============================================================
-function drawSprite(ctx, x, y, spriteData, palette, pixelSize) {
-  const ps = pixelSize || 2;
-  for (let row = 0; row < spriteData.length; row++) {
-    const line = spriteData[row];
-    for (let col = 0; col < line.length; col++) {
-      const ch = line[col];
-      if (ch === '.' || ch === ' ') continue;
-      ctx.fillStyle = palette[ch] || FG_COLOR;
-      ctx.fillRect(Math.floor(x + col * ps), Math.floor(y + row * ps), ps, ps);
+const playerImages = [];
+let imagesLoaded = 0;
+const TOTAL_IMAGES = 4;
+
+// Load player animation frames
+for (let i = 1; i <= TOTAL_IMAGES; i++) {
+  const img = new Image();
+  img.src = `images/player_${i}.png`;
+  img.onload = () => {
+    imagesLoaded++;
+    if (imagesLoaded === TOTAL_IMAGES) {
+      console.log('All player images loaded');
     }
-  }
+  };
+  img.onerror = () => {
+    console.warn(`Failed to load images/player_${i}.png - using placeholder`);
+    imagesLoaded++;
+  };
+  playerImages.push(img);
 }
-
-// ============================================================
-// Schnauzer sprite
-// ============================================================
-const schnauzerBody = [
-  '....wwwwww....',
-  '...wwwwwwww...',
-  '..wwwwwwwwww..',
-  '..wwewwwweww..',
-  '..wwwwwwwwww..',
-  '.gwwwwwwwwwwg.',
-  '.gwwwwnnwwwwg.',
-  '.ggwwwwwwwwgg.',
-  '.gggwwwwwwggg.',
-  '..gggggggggg..',
-  '....wwwwww....',
-  '...wwwwwwww...',
-  '..wwwwwwwwww..',
-  '..wwwwwwwwww..',
-  '..wwwwwwwwww..',
-  '...ww....ww...',
-  '...ww....ww...',
-  '..www....www..',
-];
-const schnauzerPalette = { 'w': '#ffffff', 'g': '#bbbbbb', 'e': '#000000', 'n': '#333333' };
-
-// Taketompter frames
-const copterFrames = [
-  ['BBBBB..ccc..BBBBB', '......ccc........', '.......c.........'],
-  ['........c........', '......ccc........', 'BBBBB..ccc..BBBBB'],
-  ['.......c.........', '......ccc........', '.BBBB..ccc..BBBB.'],
-  ['.......c.........', '......ccc........', '..BBB..ccc..BBB..'],
-];
-const copterPalette = { 'B': ACCENT_COLOR, 'c': '#8d6e63' };
 
 // ============================================================
 // Game state
@@ -546,16 +520,22 @@ function drawPlayer() {
   // Invincibility blink
   if (invincible > 0 && Math.floor(invincible / 4) % 2 === 0) return;
 
-  const px = player.x - player.spriteW / 2;
-  const py = player.y - player.spriteH / 2;
+  // Select animation frame (4 frames, cycling every 4 game frames)
+  const frameIdx = Math.floor(frameCount / 4) % playerImages.length;
+  const img = playerImages[frameIdx];
 
-  // Taketompter
-  const copterIdx = Math.floor(frameCount / 4) % copterFrames.length;
-  const copterW = 18 * 2;
-  drawSprite(ctx, player.x - copterW / 2, py - 12, copterFrames[copterIdx], copterPalette, 2);
-
-  // Schnauzer
-  drawSprite(ctx, px, py, schnauzerBody, schnauzerPalette, 2);
+  if (img && img.complete && img.naturalWidth > 0) {
+    // Draw the image centered on player position
+    const px = player.x - player.spriteW / 2;
+    const py = player.y - player.spriteH / 2;
+    ctx.drawImage(img, Math.floor(px), Math.floor(py), player.spriteW, player.spriteH);
+  } else {
+    // Fallback: draw a simple placeholder rectangle if image not loaded
+    ctx.fillStyle = FG_COLOR;
+    const px = player.x - player.spriteW / 2;
+    const py = player.y - player.spriteH / 2;
+    ctx.fillRect(Math.floor(px), Math.floor(py), player.spriteW, player.spriteH);
+  }
 
   // Hitbox indicator (small dot at center)
   ctx.fillStyle = ACCENT_COLOR;
@@ -631,29 +611,41 @@ function drawTitleScreen() {
 
   // Draw a big schnauzer in the center
   const bigScale = 3;
-  const sw = 14 * bigScale;
-  const sh = 18 * bigScale;
-  const copterIdx = Math.floor(frameCount / 4) % copterFrames.length;
-  drawSprite(ctx, GAME_W / 2 - 18 * bigScale / 2, 120 - 18, copterFrames[copterIdx], copterPalette, bigScale);
-  drawSprite(ctx, GAME_W / 2 - sw / 2, 120, schnauzerBody, schnauzerPalette, bigScale);
+  const bigW = player.spriteW * bigScale;
+  const bigH = player.spriteH * bigScale;
+  const frameIdx = Math.floor(frameCount / 4) % playerImages.length;
+  const img = playerImages[frameIdx];
+
+  if (img && img.complete && img.naturalWidth > 0) {
+    ctx.drawImage(img,
+      Math.floor(GAME_W / 2 - bigW / 2),
+      120,
+      bigW,
+      bigH
+    );
+  } else {
+    // Fallback placeholder
+    ctx.fillStyle = FG_COLOR;
+    ctx.fillRect(Math.floor(GAME_W / 2 - bigW / 2), 120, bigW, bigH);
+  }
 
   // Stage info
   const stage = STAGES[currentStage];
   ctx.fillStyle = ACCENT_COLOR;
   ctx.font = '8px monospace';
-  ctx.fillText(stage.name, GAME_W / 2, 200);
+  ctx.fillText(stage.name, GAME_W / 2, 240);
   ctx.fillStyle = '#888';
-  ctx.fillText('TIME: ' + stage.time + 's', GAME_W / 2, 215);
-  ctx.fillText('PATTERNS: ' + stage.patterns.join(', ').toUpperCase(), GAME_W / 2, 228);
+  ctx.fillText('TIME: ' + stage.time + 's', GAME_W / 2, 255);
+  ctx.fillText('PATTERNS: ' + stage.patterns.join(', ').toUpperCase(), GAME_W / 2, 268);
 
   // Stage select arrows
   if (currentStage > 0) {
     ctx.fillStyle = FG_COLOR;
-    ctx.fillText('<', GAME_W / 2 - 60, 200);
+    ctx.fillText('<', GAME_W / 2 - 60, 240);
   }
   if (currentStage < STAGES.length - 1) {
     ctx.fillStyle = FG_COLOR;
-    ctx.fillText('>', GAME_W / 2 + 60, 200);
+    ctx.fillText('>', GAME_W / 2 + 60, 240);
   }
 
   // Start prompt
