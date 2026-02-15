@@ -21,10 +21,10 @@ def extract_sprites_uniform(input_path, output_path):
     width, height = img.size
     print(f"Image size: {width}x{height}")
 
-    # Grid structure: 16 columns x 8 rows, use only first 6 rows
+    # Grid structure: 16 columns x 8 rows, use only first 2 rows
     TOTAL_COLS = 16
     TOTAL_ROWS = 8
-    USE_ROWS = 6  # Only use first 6 rows (skip last 2)
+    USE_ROWS = 2  # Only use first 2 rows (3+ have alignment issues)
 
     # Calculate cell size (including grid lines)
     cell_w = width // TOTAL_COLS
@@ -59,11 +59,23 @@ def extract_sprites_uniform(input_path, output_path):
     sprite_w = cell_w - grid_line_v
     sprite_h = cell_h - grid_line_h
 
-    print(f"Sprite dimensions: {sprite_w}x{sprite_h}")
+    print(f"Sprite dimensions (before trimming): {sprite_w}x{sprite_h}")
 
-    # Create new spritesheet for 6 rows
-    new_width = sprite_w * TOTAL_COLS
-    new_height = sprite_h * USE_ROWS
+    # Trim 5% from each side to remove grid line remnants
+    TRIM_PERCENT = 0.05
+    trim_x = int(sprite_w * TRIM_PERCENT)
+    trim_y = int(sprite_h * TRIM_PERCENT)
+
+    # Final sprite size after trimming
+    final_w = sprite_w - 2 * trim_x
+    final_h = sprite_h - 2 * trim_y
+
+    print(f"Trimming {TRIM_PERCENT*100}% from each side: {trim_x}px horizontal, {trim_y}px vertical")
+    print(f"Final sprite dimensions: {final_w}x{final_h}")
+
+    # Create new spritesheet for specified rows
+    new_width = final_w * TOTAL_COLS
+    new_height = final_h * USE_ROWS
     new_img = Image.new('RGBA', (new_width, new_height), (0, 0, 0, 0))
 
     print(f"Creating new spritesheet: {new_width}x{new_height}")
@@ -89,10 +101,15 @@ def extract_sprites_uniform(input_path, output_path):
                     if is_green(r, g, b) or is_magenta(r, g, b):
                         sprite_pixels[x, y] = (r, g, b, 0)
 
+            # Trim 5% from each side to remove grid line remnants
+            trimmed_sprite = sprite.crop((trim_x, trim_y,
+                                         sprite_w - trim_x,
+                                         sprite_h - trim_y))
+
             # Paste into new spritesheet
-            dest_x = col * sprite_w
-            dest_y = row * sprite_h
-            new_img.paste(sprite, (dest_x, dest_y))
+            dest_x = col * final_w
+            dest_y = row * final_h
+            new_img.paste(trimmed_sprite, (dest_x, dest_y))
 
             sprite_count += 1
             if sprite_count % 16 == 0:
