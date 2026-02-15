@@ -157,7 +157,7 @@ const STAGES = [
   { name: 'STAGE 2', time: 18, patterns: ['rain', 'aimed', 'big_slow'] },
   { name: 'STAGE 3', time: 20, patterns: ['rain', 'aimed', 'spiral', 'big_slow'] },
   { name: 'STAGE 4', time: 20, patterns: ['aimed', 'spiral', 'circle', 'big_slow'] },
-  { name: 'STAGE 5', time: 23, patterns: ['rain', 'aimed', 'spiral', 'circle', 'big_slow'] },
+  { name: 'STAGE 5', time: 12, patterns: ['rain', 'aimed', 'spiral', 'circle', 'big_slow'] },  // Reduced from 23s for better balance
 ];
 
 // ============================================================
@@ -640,14 +640,21 @@ canvas.addEventListener('touchend', (e) => {
 
 function handleTap() {
   if (gameState === STATE.TITLE) {
-    extraLives = 0;  // Reset extra lives at game start
+    // Only reset extra lives when starting from stage 1
+    if (currentStage === 0) {
+      extraLives = 0;
+    }
     startStage(currentStage);
   } else if (gameState === STATE.CLEAR) {
     if (currentStage < STAGES.length - 1) {
       currentStage++;
+      startStage(currentStage);  // Start next stage immediately (keeps extra lives)
+    } else {
+      currentStage = 0;  // Reset to stage 1 after final stage
+      gameState = STATE.TITLE;
     }
-    gameState = STATE.TITLE;
   } else if (gameState === STATE.GAMEOVER) {
+    currentStage = 0;  // Reset to stage 1 after game over
     gameState = STATE.TITLE;
   }
 }
