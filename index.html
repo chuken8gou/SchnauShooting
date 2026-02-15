@@ -38,12 +38,13 @@ canvas {
 // ============================================================
 const GAME_W = 240;
 const GAME_H = 400;
-const BG_COLOR = '#000';
+const BG_COLOR = '#87A8C0';  // Soft blue sky (low saturation, eye-friendly)
 const FG_COLOR = '#fff';
 const ACCENT_COLOR = '#4fc3f7';
 const DANGER_COLOR = '#ff5252';
 const WARNING_COLOR = '#ffab40';
 const SUCCESS_COLOR = '#69f0ae';
+const CLOUD_COLOR = '#D0D8E0';  // Soft white clouds
 
 // Player hitbox radius (small, like a real bullet hell)
 const PLAYER_HIT_R = 3;
@@ -152,10 +153,10 @@ let currentStage = 0;
 
 const STAGES = [
   { name: 'STAGE 1', time: 15, patterns: ['rain'] },
-  { name: 'STAGE 2', time: 18, patterns: ['rain', 'aimed'] },
-  { name: 'STAGE 3', time: 20, patterns: ['rain', 'aimed', 'spiral'] },
-  { name: 'STAGE 4', time: 20, patterns: ['aimed', 'spiral', 'circle'] },
-  { name: 'STAGE 5', time: 23, patterns: ['rain', 'aimed', 'spiral', 'circle'] },
+  { name: 'STAGE 2', time: 18, patterns: ['rain', 'aimed', 'big_slow'] },
+  { name: 'STAGE 3', time: 20, patterns: ['rain', 'aimed', 'spiral', 'big_slow'] },
+  { name: 'STAGE 4', time: 20, patterns: ['aimed', 'spiral', 'circle', 'big_slow'] },
+  { name: 'STAGE 5', time: 23, patterns: ['rain', 'aimed', 'spiral', 'circle', 'big_slow'] },
 ];
 
 // ============================================================
@@ -236,7 +237,7 @@ function drawBullets() {
 let patternTimers = {};
 
 function resetPatterns() {
-  patternTimers = { rain: 0, aimed: 0, spiral: 0, spiralAngle: 0, circle: 0 };
+  patternTimers = { rain: 0, aimed: 0, spiral: 0, spiralAngle: 0, circle: 0, big_slow: 0 };
 }
 
 function updatePatterns() {
@@ -304,6 +305,17 @@ function updatePatterns() {
             const a = (Math.PI * 2 / count) * i;
             spawnBullet(cx, cy, Math.cos(a) * speed, Math.sin(a) * speed, 2, ACCENT_COLOR);
           }
+        }
+        break;
+
+      case 'big_slow':
+        patternTimers.big_slow++;
+        // Large, slow-moving bullets from top
+        if (patternTimers.big_slow % Math.max(45, 90 - difficulty * 10) === 0) {
+          const x = 30 + Math.random() * (GAME_W - 60);
+          const speed = 0.5 + difficulty * 0.08;  // Very slow
+          const radius = 8 + difficulty * 0.5;     // Large radius (4x normal)
+          spawnBullet(x, -radius, (Math.random() - 0.5) * 0.2, speed, radius, '#FF8844');
         }
         break;
     }
@@ -382,31 +394,56 @@ function drawParticles() {
 }
 
 // ============================================================
-// Stars background
+// Clouds background
 // ============================================================
-const stars = [];
-for (let i = 0; i < 40; i++) {
-  stars.push({
+const clouds = [];
+for (let i = 0; i < 8; i++) {
+  clouds.push({
     x: Math.random() * GAME_W,
     y: Math.random() * GAME_H,
-    speed: 0.3 + Math.random() * 0.7,
-    brightness: Math.floor(80 + Math.random() * 100),
+    speed: 0.15 + Math.random() * 0.25,  // Slow movement
+    width: 30 + Math.random() * 40,
+    height: 12 + Math.random() * 16,
+    opacity: 0.3 + Math.random() * 0.4,
   });
 }
 
-function updateStars() {
-  for (const s of stars) {
-    s.y += s.speed;
-    if (s.y > GAME_H) { s.y = 0; s.x = Math.random() * GAME_W; }
+function updateClouds() {
+  for (const c of clouds) {
+    c.y += c.speed;
+    if (c.y > GAME_H + c.height) {
+      c.y = -c.height;
+      c.x = Math.random() * GAME_W;
+    }
   }
 }
 
-function drawStars() {
-  for (const s of stars) {
-    const v = s.brightness.toString(16).padStart(2, '0');
-    ctx.fillStyle = '#' + v + v + v;
-    ctx.fillRect(Math.floor(s.x), Math.floor(s.y), 1, 1);
+function drawClouds() {
+  for (const c of clouds) {
+    ctx.globalAlpha = c.opacity;
+    ctx.fillStyle = CLOUD_COLOR;
+    // Draw simple cloud shape using overlapping ellipses
+    const cx = Math.floor(c.x);
+    const cy = Math.floor(c.y);
+    const w = c.width;
+    const h = c.height;
+
+    // Main cloud body
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, w * 0.5, h * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Left puff
+    ctx.beginPath();
+    ctx.ellipse(cx - w * 0.3, cy, w * 0.35, h * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Right puff
+    ctx.beginPath();
+    ctx.ellipse(cx + w * 0.3, cy, w * 0.35, h * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
+  ctx.globalAlpha = 1;
 }
 
 // ============================================================
@@ -740,7 +777,7 @@ function drawGameOverScreen() {
 // ============================================================
 function update() {
   frameCount++;
-  updateStars();
+  updateClouds();
   updateParticles();
 
   if (gameState === STATE.PLAYING) {
@@ -777,7 +814,7 @@ function draw() {
   // Clear
   ctx.fillStyle = BG_COLOR;
   ctx.fillRect(-10, -10, GAME_W + 20, GAME_H + 20);
-  drawStars();
+  drawClouds();
 
   switch (gameState) {
     case STATE.TITLE:
