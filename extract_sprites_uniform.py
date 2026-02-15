@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""
+Extract sprites from 16x8 grid, using only first 6 rows
+"""
+
+from PIL import Image
+
+def is_green(r, g, b):
+    """Check if pixel is green background"""
+    return r < 150 and g > 170 and b < 150
+
+def is_magenta(r, g, b):
+    """Check if pixel is magenta grid line"""
+    return r > 180 and g < 80 and b > 180
+
+def extract_sprites_uniform(input_path, output_path):
+    print(f"Loading image: {input_path}")
+    img = Image.open(input_path)
+    img = img.convert("RGBA")
+
+    width, height = img.size
+    print(f"Image size: {width}x{height}")
+
+    # Grid structure: 16 columns x 8 rows, use only first 6 rows
+    TOTAL_COLS = 16
+    TOTAL_ROWS = 8
+    USE_ROWS = 6  # Only use first 6 rows (skip last 2)
+
+    # Calculate cell size (including grid lines)
+    cell_w = width // TOTAL_COLS
+    cell_h = height // TOTAL_ROWS
+
+    print(f"Cell size (with grid): {cell_w}x{cell_h}")
+
+    # Detect grid line width by sampling
+    pixels = img.load()
+
+    # Find vertical grid line width (sample from top-left)
+    grid_line_v = 0
+    for x in range(cell_w):
+        r, g, b, a = pixels[x, 10]
+        if is_magenta(r, g, b):
+            grid_line_v += 1
+        else:
+            break
+
+    # Find horizontal grid line width
+    grid_line_h = 0
+    for y in range(cell_h):
+        r, g, b, a = pixels[10, y]
+        if is_magenta(r, g, b):
+            grid_line_h += 1
+        else:
+            break
+
+    print(f"Detected grid line width: vertical={grid_line_v}px, horizontal={grid_line_h}px")
+
+    # Calculate sprite dimensions (cell - grid line)
+    sprite_w = cell_w - grid_line_v
+    sprite_h = cell_h - grid_line_h
+
+    print(f"Sprite dimensions: {sprite_w}x{sprite_h}")
+
+    # Create new spritesheet for 6 rows
+    new_width = sprite_w * TOTAL_COLS
+    new_height = sprite_h * USE_ROWS
+    new_img = Image.new('RGBA', (new_width, new_height), (0, 0, 0, 0))
+
+    print(f"Creating new spritesheet: {new_width}x{new_height}")
+    print(f"Processing {TOTAL_COLS * USE_ROWS} sprites (rows 0-{USE_ROWS-1})...")
+
+    sprite_count = 0
+    for row in range(USE_ROWS):
+        for col in range(TOTAL_COLS):
+            # Calculate source position
+            # Each cell starts at (col * cell_w, row * cell_h)
+            # Skip grid lines at the beginning of each cell
+            src_x = col * cell_w + grid_line_v
+            src_y = row * cell_h + grid_line_h
+
+            # Extract sprite
+            sprite = img.crop((src_x, src_y, src_x + sprite_w, src_y + sprite_h))
+
+            # Make green background and magenta grid lines transparent
+            sprite_pixels = sprite.load()
+            for y in range(sprite_h):
+                for x in range(sprite_w):
+                    r, g, b, a = sprite_pixels[x, y]
+                    if is_green(r, g, b) or is_magenta(r, g, b):
+                        sprite_pixels[x, y] = (r, g, b, 0)
+
+            # Paste into new spritesheet
+            dest_x = col * sprite_w
+            dest_y = row * sprite_h
+            new_img.paste(sprite, (dest_x, dest_y))
+
+            sprite_count += 1
+            if sprite_count % 16 == 0:
+                print(f"  Processed row {row + 1}/{USE_ROWS} ({sprite_count} sprites)")
+
+    print(f"Processed {sprite_count} sprites total")
+    print(f"Saving to: {output_path}")
+    new_img.save(output_path, "PNG")
+    print("Done!")
+
+if __name__ == "__main__":
+    extract_sprites_uniform(
+        "1771081958996.png",
+        "images/player_spritesheet.png"
+    )

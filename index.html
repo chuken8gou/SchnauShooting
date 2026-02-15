@@ -109,10 +109,10 @@ function sfxStart() { playTone(440, 0.1, 'square', 0.08); playTone(880, 0.15, 's
 // ============================================================
 // Image assets
 // ============================================================
-// Spritesheet configuration (16x8 grid = 128 frames)
+// Spritesheet configuration (16x6 grid = 96 frames, using first 6 rows only)
 const SPRITESHEET_COLS = 16;
-const SPRITESHEET_ROWS = 8;
-const TOTAL_FRAMES = 112;  // Actual number of frames (16 cols x 7 rows)
+const SPRITESHEET_ROWS = 6;
+const TOTAL_FRAMES = 96;  // 16 cols x 6 rows (last 2 rows excluded due to corruption)
 
 let playerSpritesheet = null;
 let spritesheetLoaded = false;
