@@ -56,16 +56,18 @@ def extract_sprites_uniform(input_path, output_path):
     print(f"Detected grid line width: vertical={grid_line_v}px, horizontal={grid_line_h}px")
 
     # Calculate sprite dimensions (cell - grid line)
+    # Add extra pixels at bottom to show full character feet
+    BOTTOM_EXTENSION = 15
     sprite_w = cell_w - grid_line_v
-    sprite_h = cell_h - grid_line_h
+    sprite_h = cell_h - grid_line_h + BOTTOM_EXTENSION
 
-    print(f"Sprite dimensions (before trimming): {sprite_w}x{sprite_h}")
+    print(f"Sprite dimensions (before trimming): {sprite_w}x{sprite_h} (bottom extended by {BOTTOM_EXTENSION}px)")
 
     # Trim from edges to remove grid line remnants
     # Horizontal: 5% from each side
-    # Vertical: 2% from top, 0% from bottom (to show full character)
+    # Vertical: 0% from both sides (to show full character)
     TRIM_PERCENT_H = 0.05
-    TRIM_PERCENT_V_TOP = 0.02
+    TRIM_PERCENT_V_TOP = 0.00
     TRIM_PERCENT_V_BOTTOM = 0.00
 
     trim_x = int(sprite_w * TRIM_PERCENT_H)
