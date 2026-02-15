@@ -524,9 +524,9 @@ function drawPlayer() {
   // Invincibility blink
   if (invincible > 0 && Math.floor(invincible / 4) % 2 === 0) return;
 
-  // Select animation frame from spritesheet (cycling every 2 game frames)
-  // Using all 128 frames (16 cols x 8 rows)
-  const frameIdx = Math.floor(frameCount / 2) % TOTAL_FRAMES;
+  // Select animation frame from spritesheet (cycling every 4 game frames)
+  // Using 16 frames (16 cols x 1 row)
+  const frameIdx = Math.floor(frameCount / 4) % TOTAL_FRAMES;
 
   if (spritesheetLoaded && playerSpritesheet) {
     // Calculate source position in spritesheet
@@ -627,7 +627,7 @@ function drawTitleScreen() {
   const bigScale = 3;
   const bigW = player.spriteW * bigScale;
   const bigH = player.spriteH * bigScale;
-  const frameIdx = Math.floor(frameCount / 2) % TOTAL_FRAMES;
+  const frameIdx = Math.floor(frameCount / 4) % TOTAL_FRAMES;
 
   if (spritesheetLoaded && playerSpritesheet) {
     // Calculate source position in spritesheet

@@ -61,16 +61,22 @@ def extract_sprites_uniform(input_path, output_path):
 
     print(f"Sprite dimensions (before trimming): {sprite_w}x{sprite_h}")
 
-    # Trim 5% from each side to remove grid line remnants
-    TRIM_PERCENT = 0.05
-    trim_x = int(sprite_w * TRIM_PERCENT)
-    trim_y = int(sprite_h * TRIM_PERCENT)
+    # Trim from edges to remove grid line remnants
+    # Horizontal: 5% from each side
+    # Vertical: 5% from top, 2% from bottom (to preserve character bottom)
+    TRIM_PERCENT_H = 0.05
+    TRIM_PERCENT_V_TOP = 0.05
+    TRIM_PERCENT_V_BOTTOM = 0.02
+
+    trim_x = int(sprite_w * TRIM_PERCENT_H)
+    trim_y_top = int(sprite_h * TRIM_PERCENT_V_TOP)
+    trim_y_bottom = int(sprite_h * TRIM_PERCENT_V_BOTTOM)
 
     # Final sprite size after trimming
     final_w = sprite_w - 2 * trim_x
-    final_h = sprite_h - 2 * trim_y
+    final_h = sprite_h - trim_y_top - trim_y_bottom
 
-    print(f"Trimming {TRIM_PERCENT*100}% from each side: {trim_x}px horizontal, {trim_y}px vertical")
+    print(f"Trimming: horizontal {TRIM_PERCENT_H*100}% ({trim_x}px), top {TRIM_PERCENT_V_TOP*100}% ({trim_y_top}px), bottom {TRIM_PERCENT_V_BOTTOM*100}% ({trim_y_bottom}px)")
     print(f"Final sprite dimensions: {final_w}x{final_h}")
 
     # Create new spritesheet for specified rows
@@ -101,10 +107,10 @@ def extract_sprites_uniform(input_path, output_path):
                     if is_green(r, g, b) or is_magenta(r, g, b):
                         sprite_pixels[x, y] = (r, g, b, 0)
 
-            # Trim 5% from each side to remove grid line remnants
-            trimmed_sprite = sprite.crop((trim_x, trim_y,
+            # Trim edges: 5% left/right, 5% top, 2% bottom
+            trimmed_sprite = sprite.crop((trim_x, trim_y_top,
                                          sprite_w - trim_x,
-                                         sprite_h - trim_y))
+                                         sprite_h - trim_y_bottom))
 
             # Paste into new spritesheet
             dest_x = col * final_w
