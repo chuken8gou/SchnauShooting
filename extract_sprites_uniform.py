@@ -63,10 +63,10 @@ def extract_sprites_uniform(input_path, output_path):
 
     # Trim from edges to remove grid line remnants
     # Horizontal: 5% from each side
-    # Vertical: 5% from top, 2% from bottom (to preserve character bottom)
+    # Vertical: 2% from top, 0% from bottom (to show full character)
     TRIM_PERCENT_H = 0.05
-    TRIM_PERCENT_V_TOP = 0.05
-    TRIM_PERCENT_V_BOTTOM = 0.02
+    TRIM_PERCENT_V_TOP = 0.02
+    TRIM_PERCENT_V_BOTTOM = 0.00
 
     trim_x = int(sprite_w * TRIM_PERCENT_H)
     trim_y_top = int(sprite_h * TRIM_PERCENT_V_TOP)

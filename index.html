@@ -151,11 +151,11 @@ let shakeTimer = 0;
 let currentStage = 0;
 
 const STAGES = [
-  { name: 'STAGE 1', time: 30, patterns: ['rain'] },
-  { name: 'STAGE 2', time: 35, patterns: ['rain', 'aimed'] },
-  { name: 'STAGE 3', time: 40, patterns: ['rain', 'aimed', 'spiral'] },
-  { name: 'STAGE 4', time: 40, patterns: ['aimed', 'spiral', 'circle'] },
-  { name: 'STAGE 5', time: 45, patterns: ['rain', 'aimed', 'spiral', 'circle'] },
+  { name: 'STAGE 1', time: 15, patterns: ['rain'] },
+  { name: 'STAGE 2', time: 18, patterns: ['rain', 'aimed'] },
+  { name: 'STAGE 3', time: 20, patterns: ['rain', 'aimed', 'spiral'] },
+  { name: 'STAGE 4', time: 20, patterns: ['aimed', 'spiral', 'circle'] },
+  { name: 'STAGE 5', time: 23, patterns: ['rain', 'aimed', 'spiral', 'circle'] },
 ];
 
 // ============================================================
@@ -247,8 +247,8 @@ function updatePatterns() {
     switch (pat) {
       case 'rain':
         patternTimers.rain++;
-        // Random bullets falling from top
-        if (patternTimers.rain % Math.max(8, 20 - difficulty * 3) === 0) {
+        // Random bullets falling from top (doubled frequency)
+        if (patternTimers.rain % Math.max(4, 10 - difficulty * 1.5) === 0) {
           const x = 10 + Math.random() * (GAME_W - 20);
           const speed = 1.2 + Math.random() * 0.8 + difficulty * 0.15;
           spawnBullet(x, -5, (Math.random() - 0.5) * 0.3, speed, 2, FG_COLOR);
@@ -257,8 +257,8 @@ function updatePatterns() {
 
       case 'aimed':
         patternTimers.aimed++;
-        // Bullets aimed at player from random edge positions
-        if (patternTimers.aimed % Math.max(20, 50 - difficulty * 6) === 0) {
+        // Bullets aimed at player from random edge positions (doubled frequency)
+        if (patternTimers.aimed % Math.max(10, 25 - difficulty * 3) === 0) {
           const side = Math.random();
           let sx, sy;
           if (side < 0.6) {
@@ -278,7 +278,8 @@ function updatePatterns() {
 
       case 'spiral':
         patternTimers.spiral++;
-        if (patternTimers.spiral % Math.max(4, 10 - difficulty) === 0) {
+        // Spiral pattern (doubled frequency)
+        if (patternTimers.spiral % Math.max(2, 5 - difficulty * 0.5) === 0) {
           patternTimers.spiralAngle += 0.5 + difficulty * 0.05;
           const a = patternTimers.spiralAngle;
           const speed = 1.3 + difficulty * 0.1;
@@ -293,8 +294,8 @@ function updatePatterns() {
 
       case 'circle':
         patternTimers.circle++;
-        // Periodic circular burst
-        if (patternTimers.circle % Math.max(60, 120 - difficulty * 15) === 0) {
+        // Periodic circular burst (doubled frequency)
+        if (patternTimers.circle % Math.max(30, 60 - difficulty * 7.5) === 0) {
           const cx = 30 + Math.random() * (GAME_W - 60);
           const cy = 20 + Math.random() * 60;
           const count = 10 + difficulty * 2;
