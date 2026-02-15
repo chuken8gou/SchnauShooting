@@ -21,10 +21,10 @@ def extract_sprites_uniform(input_path, output_path):
     width, height = img.size
     print(f"Image size: {width}x{height}")
 
-    # Grid structure: 16 columns x 8 rows, use only first 2 rows
+    # Grid structure: 16 columns x 8 rows, use only first 1 row
     TOTAL_COLS = 16
     TOTAL_ROWS = 8
-    USE_ROWS = 2  # Only use first 2 rows (3+ have alignment issues)
+    USE_ROWS = 1  # Only use first row (clean and aligned)
 
     # Calculate cell size (including grid lines)
     cell_w = width // TOTAL_COLS
