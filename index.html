@@ -144,6 +144,7 @@ let frameCount = 0;
 let stageTimer = 0;       // frames remaining
 let stageTimerMax = 0;
 let lives = 3;
+let extraLives = 0;       // bonus lives from recovery items (golden hearts)
 let invincible = 0;       // invincibility frames remaining
 let grazeCount = 0;
 let shakeTimer = 0;
@@ -303,7 +304,7 @@ function updatePatterns() {
           const speed = 1.0 + difficulty * 0.15;
           for (let i = 0; i < count; i++) {
             const a = (Math.PI * 2 / count) * i;
-            spawnBullet(cx, cy, Math.cos(a) * speed, Math.sin(a) * speed, 2, ACCENT_COLOR);
+            spawnBullet(cx, cy, Math.cos(a) * speed, Math.sin(a) * speed, 2, '#E040FB');  // Magenta (visible against blue sky)
           }
         }
         break;
@@ -394,6 +395,99 @@ function drawParticles() {
 }
 
 // ============================================================
+// Recovery Items (Hearts)
+// ============================================================
+const recoveryItems = [];
+let recoverySpawnTimer = 0;
+const RECOVERY_SPAWN_INTERVAL = 900;  // 15 seconds at 60fps
+
+function spawnRecoveryItem() {
+  const x = 40 + Math.random() * (GAME_W - 80);
+  const y = -10;
+  recoveryItems.push({
+    x, y,
+    vy: 0.6,  // Slow falling speed
+    radius: 6,
+    pulseTimer: 0,
+  });
+}
+
+function updateRecoveryItems() {
+  // Spawn timer
+  if (gameState === STATE.PLAYING) {
+    recoverySpawnTimer++;
+    if (recoverySpawnTimer >= RECOVERY_SPAWN_INTERVAL) {
+      spawnRecoveryItem();
+      recoverySpawnTimer = 0;
+    }
+  }
+
+  // Update items
+  for (let i = recoveryItems.length - 1; i >= 0; i--) {
+    const item = recoveryItems[i];
+    item.y += item.vy;
+    item.pulseTimer += 0.1;
+
+    // Remove if off screen
+    if (item.y > GAME_H + 20) {
+      recoveryItems.splice(i, 1);
+      continue;
+    }
+
+    // Check collision with player
+    const dx = item.x - player.x;
+    const dy = item.y - player.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < item.radius + 8) {
+      // Collect item
+      extraLives++;
+      recoveryItems.splice(i, 1);
+      spawnParticles(item.x, item.y, 15, SUCCESS_COLOR, 2);
+      sfxGraze();  // Use graze sound for now
+    }
+  }
+}
+
+function drawRecoveryItems() {
+  for (const item of recoveryItems) {
+    const pulse = 1 + Math.sin(item.pulseTimer) * 0.2;
+    const size = item.radius * pulse;
+
+    // Draw golden heart
+    ctx.save();
+    ctx.translate(Math.floor(item.x), Math.floor(item.y));
+    ctx.fillStyle = '#FFD700';  // Gold color
+
+    // Simple heart shape using two circles and a triangle
+    ctx.beginPath();
+    // Left circle
+    ctx.arc(-size * 0.3, -size * 0.2, size * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    // Right circle
+    ctx.beginPath();
+    ctx.arc(size * 0.3, -size * 0.2, size * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    // Bottom triangle
+    ctx.beginPath();
+    ctx.moveTo(-size * 0.6, 0);
+    ctx.lineTo(0, size * 0.8);
+    ctx.lineTo(size * 0.6, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Glow effect
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = SUCCESS_COLOR;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.restore();
+  }
+}
+
+// ============================================================
 // Clouds background
 // ============================================================
 const clouds = [];
@@ -450,7 +544,13 @@ function drawClouds() {
 // Player hit / game events
 // ============================================================
 function onPlayerHit() {
-  lives--;
+  // Consume extra lives first, then regular lives
+  if (extraLives > 0) {
+    extraLives--;
+  } else {
+    lives--;
+  }
+
   invincible = 90; // 1.5 sec at 60fps
   shakeTimer = 15;
   sfxHit();
@@ -469,10 +569,13 @@ function startStage(idx) {
   stageTimerMax = stage.time * 60; // seconds to frames
   stageTimer = stageTimerMax;
   lives = 3;
+  // extraLives carries over between stages
   invincible = 60;
   grazeCount = 0;
   clearBullets();
   particles.length = 0;
+  recoveryItems.length = 0;
+  recoverySpawnTimer = 0;
   resetPatterns();
   resetPlayer();
   gameState = STATE.PLAYING;
@@ -537,6 +640,7 @@ canvas.addEventListener('touchend', (e) => {
 
 function handleTap() {
   if (gameState === STATE.TITLE) {
+    extraLives = 0;  // Reset extra lives at game start
     startStage(currentStage);
   } else if (gameState === STATE.CLEAR) {
     if (currentStage < STAGES.length - 1) {
@@ -630,9 +734,19 @@ function drawLives() {
   ctx.textAlign = 'left';
   ctx.fillText('LIFE', 8, 14);
 
+  // Draw regular lives (red hearts)
   for (let i = 0; i < lives; i++) {
-    ctx.fillStyle = i < lives ? DANGER_COLOR : '#333';
+    ctx.fillStyle = DANGER_COLOR;
     ctx.fillRect(32 + i * 10, 9, 7, 7);
+  }
+
+  // Draw extra lives (golden hearts)
+  for (let i = 0; i < extraLives; i++) {
+    ctx.fillStyle = '#FFD700';  // Gold
+    ctx.fillRect(32 + (lives + i) * 10, 9, 7, 7);
+    // Add small shine effect
+    ctx.fillStyle = '#FFEB99';
+    ctx.fillRect(33 + (lives + i) * 10, 10, 2, 2);
   }
 }
 
@@ -779,6 +893,7 @@ function update() {
   frameCount++;
   updateClouds();
   updateParticles();
+  updateRecoveryItems();
 
   if (gameState === STATE.PLAYING) {
     if (invincible > 0) invincible--;
@@ -823,6 +938,7 @@ function draw() {
 
     case STATE.PLAYING:
       drawBullets();
+      drawRecoveryItems();
       drawPlayer();
       drawParticles();
       drawLives();
